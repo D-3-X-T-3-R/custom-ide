@@ -3,10 +3,7 @@ use crate::commands::validator::Command;
 use crate::macros::CMD_LIST;
 use colored::Colorize;
 use fs_extra::dir::{copy, move_dir, CopyOptions as DirCopyOptions};
-use std::collections::VecDeque;
-use std::env;
-use std::path::Path;
-use std::{fs, fs::File, io::prelude::*};
+use std::{collections::VecDeque, env, fs, fs::File, io::prelude::*, path::Path};
 
 impl Command {
     pub fn execute_command(self, command_stack: &VecDeque<String>) -> bool {
@@ -15,9 +12,9 @@ impl Command {
         } else if self.operation == "cmd" && self.operand_1.as_ref().unwrap() == "--help" {
             cmd_helper();
         } else if self.operation == "mkdir" {
-            make_dir(&self.operand_1.unwrap());
+            return make_dir(&self.operand_1.unwrap(), &self.operation);
         } else if self.operation == "cd" {
-            change_dir(self.operand_1.unwrap());
+            change_dir(self.operand_1, &self.operation);
         } else if self.operation == "rmdir" {
             remove_dir(&self.operand_1.unwrap());
         } else if self.operation == "mv" {
@@ -53,11 +50,7 @@ impl Command {
         } else if self.operation == "clear" {
             clear_screen();
         } else {
-            println!(
-                "Invalid Command `{}`. Type `cmd --help` for command list",
-                self.operation
-            );
-            return false;
+            return invalid_command(&self.operation);
         }
         true
     }
@@ -66,20 +59,35 @@ impl Command {
 pub fn cmd_helper() {
     println!("{}", CMD_LIST);
 }
-fn make_dir(path: &str) {
-    fs::create_dir_all(path).expect(&format!(
-        "Could not create folder. Incorrect path :{}",
-        path
-    ));
+fn make_dir(path: &str, operation: &str) -> bool {
+    if let Ok(_) = fs::create_dir_all(path) {
+        return true;
+    } else {
+        return custom_invalid_command(
+            operation,
+            &format!("Could not create folder. Incorrect path :{}", path),
+        );
+    }
 }
 
-fn change_dir(path: String) {
-    let new_dir = Path::new(&path);
+fn change_dir(path: Option<String>, operation: &str) -> bool {
+    let dir_path = match path {
+        Some(path) => path,
+        None => match env::home_dir() {
+            Some(path) => path.display().to_string(),
+            None => "".to_string(),
+        },
+    };
+    let new_dir = Path::new(&dir_path);
     if let Ok(_) = env::set_current_dir(new_dir) {
+        true
     } else {
-        println!(
-            "Could not change current directory. Invalid path: {}",
-            new_dir.display()
+        return custom_invalid_command(
+            operation,
+            &format!(
+                "Could not change current directory. Invalid path: {}",
+                new_dir.display()
+            ),
         );
     }
 }
@@ -105,7 +113,7 @@ fn remove_file(file_name: &str) {
 
 fn open_file(file_name: &str) {
     let file_contents =
-        fs::read_to_string(file_name).expect(&format!("Could not create file  `{}`", file_name));
+        fs::read_to_string(file_name).expect(&format!("Could not open file  `{}`", file_name));
     println!("{}", file_contents);
 }
 
@@ -144,4 +152,21 @@ fn get_cmd_history(cmd_stack: &VecDeque<String>) {
 
 pub fn clear_screen() {
     println!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+}
+
+fn invalid_command(operation: &str) -> bool {
+    println!(
+        "Invalid Command `{}`. Type `cmd --help` for command list and syntax",
+        operation
+    );
+    false
+}
+
+fn custom_invalid_command(operation: &str, message: &str) -> bool {
+    println!("{}", message);
+    println!(
+        "Invalid command syntax for command `{}`. Type `cmd --help` for command list and syntax",
+        operation
+    );
+    false
 }
