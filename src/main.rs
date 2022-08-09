@@ -4,19 +4,22 @@ use termion;
 
 mod commands;
 mod macros;
-use crate::commands::{executor::get_current_dir, keys::read_key, validator::validate_command};
+use crate::commands::{
+    executor::{clear_screen, get_current_dir},
+    keys::read_key,
+    validator::validate_command,
+};
 
 use std::io::{self, stdout, Read, Write};
 fn main() {
-    println!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-
+    clear_screen();
     println!("WELCOME");
     println!("CUSTOM IDE V1.0");
     println!();
+    println!("Type `cmd --help` for command list");
     let mut command_stack: VecDeque<String> = VecDeque::new();
     loop {
         // TODO : key press up down cmd toggle
-        println!("Type `cmd --help` for command list");
         let mut input = String::new();
         print!(
             "{} {} ",

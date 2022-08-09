@@ -9,3 +9,4 @@ authors = ["Sougata Bhattacharjee D-3-X-T-3-R <sougata.bhattacharjee94@gmail.com
 [dependencies]
 termion = "1"
 colored = "2.0.0"
+fs_extra = "1.2.0"
